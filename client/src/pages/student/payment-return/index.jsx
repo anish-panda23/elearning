@@ -1,10 +1,11 @@
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { captureAndFinalizePaymentService } from "@/services";
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 function PaypalPaymentReturnPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
   const paymentId = params.get("paymentId");
   const payerId = params.get("PayerID");
@@ -12,7 +13,7 @@ function PaypalPaymentReturnPage() {
   useEffect(() => {
     if (paymentId && payerId) {
       async function capturePayment() {
-        const orderId = JSON.parse(sessionStorage.getItem("currentOrderId"));
+        const orderId = params.get("orderId") || JSON.parse(sessionStorage.getItem("currentOrderId"));
 
         const response = await captureAndFinalizePaymentService(
           paymentId,
@@ -22,7 +23,7 @@ function PaypalPaymentReturnPage() {
 
         if (response?.success) {
           sessionStorage.removeItem("currentOrderId");
-          window.location.href = "/student-courses";
+          navigate("/student-courses", { replace: true });
         }
       }
 
@@ -31,11 +32,16 @@ function PaypalPaymentReturnPage() {
   }, [payerId, paymentId]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Processing payment... Please wait</CardTitle>
-      </CardHeader>
-    </Card>
+    <div className="page-wrap flex min-h-[60vh] items-center justify-center">
+      <Card className="max-w-md text-center">
+        <CardHeader>
+          <CardTitle>Confirming your enrollment</CardTitle>
+          <CardDescription>
+            Please wait while we finalize your payment and unlock the course.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    </div>
   );
 }
 

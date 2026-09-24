@@ -1,57 +1,108 @@
-import { GraduationCap, TvMinimalPlay } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { GraduationCap, Search } from "lucide-react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
-import { useContext } from "react";
+import { Input } from "../ui/input";
+import { useContext, useState } from "react";
 import { AuthContext } from "@/context/auth-context";
+import TwoFactorAuthDialog from "../common/TwoFactorAuthDialog";
+
 
 function StudentViewCommonHeader() {
   const navigate = useNavigate();
-  const { resetCredentials } = useContext(AuthContext);
+  const { resetCredentials, auth } = useContext(AuthContext);
+  const [query, setQuery] = useState("");
 
   function handleLogout() {
     resetCredentials();
     sessionStorage.clear();
   }
 
+  function handleSearch(event) {
+    event.preventDefault();
+    const trimmed = query.trim();
+    navigate(trimmed ? `/courses?q=${encodeURIComponent(trimmed)}` : "/courses");
+  }
+
   return (
-    <header className="flex items-center justify-between p-4 border-b relative">
-      <div className="flex items-center space-x-4">
-        <Link to="/home" className="flex items-center hover:text-black">
-         
-          <span className="font-extrabold md:text-xl text-[14px]">
-           E learn Adda
+    <header className="sticky top-0 z-40 border-b bg-white/90 backdrop-blur">
+      <div className="page-wrap flex items-center gap-4 py-3">
+        <Link to="/home" className="flex shrink-0 items-center gap-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white">
+            <GraduationCap className="h-5 w-5" />
+          </span>
+          <span className="text-sm font-extrabold tracking-tight md:text-lg">
+            Elearn Adda
           </span>
         </Link>
-        <div className="flex items-center space-x-1">
-          <Button
-            variant="ghost"
-            onClick={() => {
-              location.pathname.includes("/courses")
-                ? null
-                : navigate("/courses");
-            }}
-            className="text-[14px] md:text-[16px] font-medium"
-          >
-            Explore Courses
-          </Button>
-        </div>
-      </div>
-      <div className="flex items-center space-x-4">
-        <div className="flex gap-4 items-center">
-          <div
-            onClick={() => navigate("/student-courses")}
-            className="flex cursor-pointer items-center gap-3"
-          >
-            <span className="font-extrabold md:text-xl text-[14px]">
-              My Courses
-            </span>
-           
+
+        <form onSubmit={handleSearch} className="hidden min-w-0 flex-1 md:block">
+          <div className="relative mx-auto max-w-xl">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search courses, skills, or topics"
+              className="h-10 rounded-full bg-muted/60 pl-9"
+              aria-label="Search courses"
+            />
           </div>
-          <Button onClick={handleLogout}>Sign Out</Button>
-        </div>
+        </form>
+
+        <nav className="ml-auto flex items-center gap-1 sm:gap-3">
+          <NavLink
+            to="/courses"
+            className={({ isActive }) =>
+              `hidden rounded-md px-3 py-2 text-sm font-medium sm:inline-flex ${
+                isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-muted"
+              }`
+            }
+          >
+            Explore
+          </NavLink>
+          <NavLink
+            to="/student-courses"
+            className={({ isActive }) =>
+              `rounded-md px-3 py-2 text-sm font-medium ${
+                isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-muted"
+              }`
+            }
+          >
+            My learning
+          </NavLink>
+          <NavLink
+            to="/certificates"
+            className={({ isActive }) =>
+              `rounded-md px-3 py-2 text-sm font-medium ${
+                isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-muted"
+              }`
+            }
+          >
+            Certificates
+          </NavLink>
+          <NavLink
+            to="/jobs"
+            className={({ isActive }) =>
+              `rounded-md px-3 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 font-bold ${
+                isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-muted"
+              }`
+            }
+          >
+            Job Board 💼
+          </NavLink>
+          {auth?.user?.userName ? (
+            <span className="hidden max-w-[120px] truncate text-sm text-muted-foreground lg:inline">
+              Hi, {auth.user.userName}
+            </span>
+          ) : null}
+          {auth?.authenticate ? <TwoFactorAuthDialog /> : null}
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            Sign out
+          </Button>
+        </nav>
       </div>
     </header>
   );
 }
+
 
 export default StudentViewCommonHeader;

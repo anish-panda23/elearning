@@ -9,14 +9,21 @@ const studentViewCourseRoutes = require("./routes/student-routes/course-routes")
 const studentViewOrderRoutes = require("./routes/student-routes/order-routes");
 const studentCoursesRoutes = require("./routes/student-routes/student-courses-routes");
 const studentCourseProgressRoutes = require("./routes/student-routes/course-progress-routes");
+const aiRoutes = require("./routes/ai-routes/index");
+const reviewRoutes = require("./routes/review-routes/index");
+const certificateRoutes = require("./routes/certificate-routes/index");
+const whatsappRoutes = require("./routes/whatsapp-routes/index");
+const jobRoutes = require("./routes/job-routes/index");
+
+const { initElasticsearch } = require("./helpers/elasticsearch");
 
 const app = express();
 const PORT = process.env.PORT || 5001;
-const MONGO_URI = process.env.MONGO_URI;
+const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/elearning";
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     methods: ["GET", "POST", "DELETE", "PUT"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -27,8 +34,12 @@ app.use(express.json());
 //database connection
 mongoose
   .connect(MONGO_URI)
-  .then(() => console.log("mongodb is connected"))
+  .then(() => {
+    console.log("mongodb is connected");
+    initElasticsearch();
+  })
   .catch((e) => console.log(e));
+
 
 //routes configuration
 app.use("/auth", authRoutes);
@@ -38,6 +49,11 @@ app.use("/student/course", studentViewCourseRoutes);
 app.use("/student/order", studentViewOrderRoutes);
 app.use("/student/courses-bought", studentCoursesRoutes);
 app.use("/student/course-progress", studentCourseProgressRoutes);
+app.use("/ai", aiRoutes);
+app.use("/reviews", reviewRoutes);
+app.use("/certificates", certificateRoutes);
+app.use("/whatsapp", whatsappRoutes);
+app.use("/jobs", jobRoutes);
 
 app.use((err, req, res, next) => {
   console.log(err.stack);

@@ -180,8 +180,59 @@ const resetCurrentCourseProgress = async (req, res) => {
   }
 };
 
+const getProgressSummaryForStudent = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const studentPurchasedCourses = await StudentCourses.findOne({ userId });
+    const purchased = studentPurchasedCourses?.courses || [];
+    const courseIds = purchased.map((item) => item.courseId);
+
+    const [progressDocs, courseDocs] = await Promise.all([
+      CourseProgress.find({ userId, courseId: { $in: courseIds } }),
+      Course.find({ _id: { $in: courseIds } }).select("curriculum"),
+    ]);
+
+    const progressByCourse = {};
+    progressDocs.forEach((doc) => {
+      progressByCourse[doc.courseId] = doc;
+    });
+
+    const totalByCourse = {};
+    courseDocs.forEach((course) => {
+      totalByCourse[String(course._id)] = course.curriculum?.length || 0;
+    });
+
+    const summary = {};
+    purchased.forEach((item) => {
+      const total = totalByCourse[item.courseId] || 0;
+      const progress = progressByCourse[item.courseId];
+      const viewed =
+        progress?.lecturesProgress?.filter((lecture) => lecture.viewed)
+          .length || 0;
+      summary[item.courseId] = {
+        viewed,
+        total,
+        percent: total ? Math.round((viewed / total) * 100) : 0,
+        completed: Boolean(progress?.completed),
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: summary,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      success: false,
+      message: "Some error occured!",
+    });
+  }
+};
+
 module.exports = {
   markCurrentLectureAsViewed,
   getCurrentCourseProgress,
   resetCurrentCourseProgress,
+  getProgressSummaryForStudent,
 };

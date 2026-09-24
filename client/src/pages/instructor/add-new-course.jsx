@@ -130,15 +130,21 @@ function AddNewCoursePage() {
   console.log(params, currentEditedCourseId, "params");
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between">
-        <h1 className="text-3xl font-extrabold mb-5">Create a new course</h1>
+    <div className="mx-auto max-w-6xl p-6">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">
+            {currentEditedCourseId ? "Edit course" : "Create a new course"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Add curriculum, landing details, and media before publishing.
+          </p>
+        </div>
         <Button
           disabled={!validateFormData()}
-          className="text-sm tracking-wider font-bold px-8"
           onClick={handleCreateCourse}
         >
-          SUBMIT
+          {currentEditedCourseId ? "Save changes" : "Publish course"}
         </Button>
       </div>
       <Card>

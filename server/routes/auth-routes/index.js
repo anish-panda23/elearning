@@ -2,12 +2,25 @@ const express = require("express");
 const {
   registerUser,
   loginUser,
+  googleAuth,
+  setup2FA,
+  verifyEnable2FA,
+  validate2FA,
+  disable2FA,
 } = require("../../controllers/auth-controller/index");
 const authenticateMiddleware = require("../../middleware/auth-middleware");
 const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+router.post("/google", googleAuth);
+
+// 2FA Routes
+router.post("/2fa/setup", authenticateMiddleware, setup2FA);
+router.post("/2fa/verify-enable", authenticateMiddleware, verifyEnable2FA);
+router.post("/2fa/validate", validate2FA);
+router.post("/2fa/disable", authenticateMiddleware, disable2FA);
+
 router.get("/check-auth", authenticateMiddleware, (req, res) => {
   const user = req.user;
 
@@ -21,3 +34,4 @@ router.get("/check-auth", authenticateMiddleware, (req, res) => {
 });
 
 module.exports = router;
+

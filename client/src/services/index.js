@@ -3,15 +3,41 @@ import axiosInstance from "@/api/axiosInstance";
 export async function registerService(formData) {
   const { data } = await axiosInstance.post("/auth/register", {
     ...formData,
-    role: "user",
+    role: formData.role || "user",
   });
 
   return data;
 }
 
+
 export async function loginService(formData) {
   const { data } = await axiosInstance.post("/auth/login", formData);
 
+  return data;
+}
+
+export async function googleAuthService(credential, role = "user") {
+  const { data } = await axiosInstance.post("/auth/google", { credential, role });
+  return data;
+}
+
+export async function setup2FAService() {
+  const { data } = await axiosInstance.post("/auth/2fa/setup");
+  return data;
+}
+
+export async function verifyEnable2FAService(token) {
+  const { data } = await axiosInstance.post("/auth/2fa/verify-enable", { token });
+  return data;
+}
+
+export async function validate2FAService(userId, token) {
+  const { data } = await axiosInstance.post("/auth/2fa/validate", { userId, token });
+  return data;
+}
+
+export async function disable2FAService() {
+  const { data } = await axiosInstance.post("/auth/2fa/disable");
   return data;
 }
 
@@ -20,6 +46,7 @@ export async function checkAuthService() {
 
   return data;
 }
+
 
 export async function mediaUploadService(formData, onProgressCallback) {
   const { data } = await axiosInstance.post("/media/upload", formData, {
@@ -83,7 +110,10 @@ export async function mediaBulkUploadService(formData, onProgressCallback) {
 }
 
 export async function fetchStudentViewCourseListService(query) {
-  const { data } = await axiosInstance.get(`/student/course/get?${query}`);
+  const qs = query ? String(query) : "";
+  const { data } = await axiosInstance.get(
+    `/student/course/get${qs ? `?${qs}` : ""}`
+  );
 
   return data;
 }
@@ -132,6 +162,14 @@ export async function fetchStudentBoughtCoursesService(studentId) {
   return data;
 }
 
+export async function fetchStudentProgressSummaryService(studentId) {
+  const { data } = await axiosInstance.get(
+    `/student/course-progress/summary/${studentId}`
+  );
+
+  return data;
+}
+
 export async function getCurrentCourseProgressService(userId, courseId) {
   const { data } = await axiosInstance.get(
     `/student/course-progress/get/${userId}/${courseId}`
@@ -164,3 +202,70 @@ export async function resetCourseProgressService(userId, courseId) {
 
   return data;
 }
+
+// ─── Reviews ─────────────────────────────────────────────
+export async function addReviewService(formData) {
+  const { data } = await axiosInstance.post("/reviews/add", formData);
+  return data;
+}
+
+export async function getCourseReviewsService(courseId) {
+  const { data } = await axiosInstance.get(`/reviews/${courseId}`);
+  return data;
+}
+
+// ─── Certificates ────────────────────────────────────────
+export async function generateCertificateService(userId, courseId) {
+  const { data } = await axiosInstance.post("/certificates/generate", { userId, courseId });
+  return data;
+}
+
+export async function getUserCertificatesService(userId) {
+  const { data } = await axiosInstance.get(`/certificates/user/${userId}`);
+  return data;
+}
+
+export async function verifyCertificateService(certificateId) {
+  const { data } = await axiosInstance.get(`/certificates/verify/${certificateId}`);
+  return data;
+}
+
+export async function getCourseCertificateService(userId, courseId) {
+  const { data } = await axiosInstance.get(`/certificates/course/${userId}/${courseId}`);
+  return data;
+}
+
+// ─── WhatsApp Notifications ──────────────────────────────
+export async function sendWhatsAppNotificationService(payload) {
+  const { data } = await axiosInstance.post("/whatsapp/send", payload);
+  return data;
+}
+
+// ─── Job Board & Placement Assessment ───────────────────
+export async function fetchJobsService() {
+  const { data } = await axiosInstance.get("/jobs");
+  return data;
+}
+
+export async function createJobService(formData) {
+  const { data } = await axiosInstance.post("/jobs/create", formData);
+  return data;
+}
+
+export async function applyJobService(payload) {
+  const { data } = await axiosInstance.post("/jobs/apply", payload);
+  return data;
+}
+
+export async function submitPlacementAssessmentService(payload) {
+  const { data } = await axiosInstance.post("/jobs/assessment/submit", payload);
+  return data;
+}
+
+export async function checkPlacementEligibilityService(userId) {
+  const { data } = await axiosInstance.get(`/jobs/eligibility/${userId}`);
+  return data;
+}
+
+
+

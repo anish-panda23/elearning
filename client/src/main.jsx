@@ -3,18 +3,24 @@ import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import "./index.css";
 import { BrowserRouter } from "react-router-dom";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import AuthProvider from "./context/auth-context/index.jsx";
 import InstructorProvider from "./context/instructor-context/index.jsx";
 import StudentProvider from "./context/student-context/index.jsx";
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "mock-client-id";
+
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
-    <AuthProvider>
-      <InstructorProvider>
-        <StudentProvider>
-          <App />
-        </StudentProvider>
-      </InstructorProvider>
-    </AuthProvider>
-  </BrowserRouter>
+  <GoogleOAuthProvider clientId={googleClientId}>
+    <BrowserRouter>
+      <AuthProvider>
+        <InstructorProvider>
+          <StudentProvider>
+            <App />
+          </StudentProvider>
+        </InstructorProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  </GoogleOAuthProvider>
 );
+

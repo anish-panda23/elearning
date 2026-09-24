@@ -4,25 +4,28 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
-  DialogOverlay,
-  DialogPortal,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import VideoPlayer from "@/components/video-player";
 import { AuthContext } from "@/context/auth-context";
 import { StudentContext } from "@/context/student-context";
+import { loadLectureNote, saveLectureNote } from "@/lib/lecture-notes";
 import {
   getCurrentCourseProgressService,
   markLectureAsViewedService,
   resetCourseProgressService,
+  generateCertificateService,
 } from "@/services";
-import { Check, ChevronLeft, ChevronRight, Play } from "lucide-react";
-import { useContext, useEffect, useState } from "react";
+import { Check, ChevronLeft, ChevronRight, NotebookPen, Play } from "lucide-react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import Confetti from "react-confetti";
+import WhatsAppNotifyModal from "@/components/common/WhatsAppNotifyModal";
 import { useNavigate, useParams } from "react-router-dom";
+import { AICourseAssistantWidget } from "@/components/AICourseAssistantWidget";
 
 function StudentViewCourseProgressPage() {
   const navigate = useNavigate();
@@ -35,7 +38,17 @@ function StudentViewCourseProgressPage() {
     useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isSideBarOpen, setIsSideBarOpen] = useState(true);
+  const [note, setNote] = useState("");
   const { id } = useParams();
+
+  const curriculum =
+    studentCurrentCourseProgress?.courseDetails?.curriculum || [];
+  const viewedCount =
+    studentCurrentCourseProgress?.progress?.filter((item) => item.viewed)
+      ?.length || 0;
+  const progressPercent = curriculum.length
+    ? Math.round((viewedCount / curriculum.length) * 100)
+    : 0;
 
   async function fetchCurrentCourseProgress() {
     const response = await getCurrentCourseProgressService(auth?.user?._id, id);
@@ -52,14 +65,14 @@ function StudentViewCourseProgressPage() {
           setCurrentLecture(response?.data?.courseDetails?.curriculum[0]);
           setShowCourseCompleteDialog(true);
           setShowConfetti(true);
-
+          // Auto-generate certificate
+          generateCertificateService(auth?.user?._id, id).catch(() => {});
           return;
         }
 
         if (response?.data?.progress?.length === 0) {
           setCurrentLecture(response?.data?.courseDetails?.curriculum[0]);
         } else {
-          console.log("logging here");
           const lastIndexOfViewedAsTrue = response?.data?.progress.reduceRight(
             (acc, obj, index) => {
               return acc === -1 && obj.viewed ? index : acc;
@@ -70,7 +83,7 @@ function StudentViewCourseProgressPage() {
           setCurrentLecture(
             response?.data?.courseDetails?.curriculum[
               lastIndexOfViewedAsTrue + 1
-            ]
+            ] || response?.data?.courseDetails?.curriculum[0]
           );
         }
       }
@@ -117,27 +130,52 @@ function StudentViewCourseProgressPage() {
     if (showConfetti) setTimeout(() => setShowConfetti(false), 15000);
   }, [showConfetti]);
 
-  console.log(currentLecture, "currentLecture");
+  useEffect(() => {
+    setNote(
+      loadLectureNote(
+        auth?.user?._id,
+        studentCurrentCourseProgress?.courseDetails?._id,
+        currentLecture?._id
+      )
+    );
+  }, [
+    auth?.user?._id,
+    studentCurrentCourseProgress?.courseDetails?._id,
+    currentLecture?._id,
+  ]);
+
+  const lectureTitle = useMemo(
+    () => currentLecture?.title || "Select a lecture",
+    [currentLecture]
+  );
 
   return (
-    <div className="flex flex-col h-screen bg-[#1c1d1f] text-white">
+    <div className="flex h-screen flex-col bg-[#0f1115] text-white">
       {showConfetti && <Confetti />}
-      <div className="flex items-center justify-between p-4 bg-[#1c1d1f] border-b border-gray-700">
-        <div className="flex items-center space-x-4">
+      <div className="flex items-center justify-between border-b border-white/10 p-4">
+        <div className="flex min-w-0 items-center space-x-4">
           <Button
             onClick={() => navigate("/student-courses")}
-            className="text-black"
+            className="text-white hover:bg-white/10"
             variant="ghost"
             size="sm"
           >
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Back to My Courses Page
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            My learning
           </Button>
-          <h1 className="text-lg font-bold hidden md:block">
-            {studentCurrentCourseProgress?.courseDetails?.title}
-          </h1>
+          <div className="min-w-0">
+            <h1 className="hidden truncate text-lg font-bold md:block">
+              {studentCurrentCourseProgress?.courseDetails?.title}
+            </h1>
+            <p className="hidden text-xs text-slate-400 md:block">
+              {progressPercent}% complete · {viewedCount}/{curriculum.length} lectures
+            </p>
+          </div>
         </div>
-        <Button onClick={() => setIsSideBarOpen(!isSideBarOpen)}>
+        <Button
+          variant="secondary"
+          onClick={() => setIsSideBarOpen(!isSideBarOpen)}
+        >
           {isSideBarOpen ? (
             <ChevronRight className="h-5 w-5" />
           ) : (
@@ -158,62 +196,88 @@ function StudentViewCourseProgressPage() {
             onProgressUpdate={setCurrentLecture}
             progressData={currentLecture}
           />
-          <div className="p-6 bg-[#1c1d1f]">
-            <h2 className="text-2xl font-bold mb-2">{currentLecture?.title}</h2>
+          <div className="p-6">
+            <h2 className="text-2xl font-bold">{lectureTitle}</h2>
           </div>
         </div>
         <div
-          className={`fixed top-[64px] right-0 bottom-0 w-[400px] bg-[#1c1d1f] border-l border-gray-700 transition-all duration-300 ${
+          className={`fixed bottom-0 right-0 top-[73px] w-[400px] border-l border-white/10 bg-[#14161c] transition-all duration-300 ${
             isSideBarOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
-          <Tabs defaultValue="content" className="h-full flex flex-col">
-            <TabsList className="grid bg-[#1c1d1f] w-full grid-cols-2 p-0 h-14">
-              <TabsTrigger
-                value="content"
-                className=" text-black rounded-none h-full"
-              >
-                Course Content
+          <Tabs defaultValue="content" className="flex h-full flex-col">
+            <TabsList className="grid h-14 w-full grid-cols-3 rounded-none bg-[#14161c] p-0">
+              <TabsTrigger value="content" className="h-full rounded-none">
+                Content
               </TabsTrigger>
-              <TabsTrigger
-                value="overview"
-                className=" text-black rounded-none h-full"
-              >
+              <TabsTrigger value="overview" className="h-full rounded-none">
                 Overview
               </TabsTrigger>
+              <TabsTrigger value="notes" className="h-full rounded-none">
+                Notes
+              </TabsTrigger>
             </TabsList>
-            <TabsContent value="content">
+            <TabsContent value="content" className="mt-0 flex-1 overflow-hidden">
               <ScrollArea className="h-full">
-                <div className="p-4 space-y-4">
-                  {studentCurrentCourseProgress?.courseDetails?.curriculum.map(
-                    (item) => (
-                      <div
-                        className="flex items-center space-x-2 text-sm text-white font-bold cursor-pointer"
+                <div className="space-y-2 p-4">
+                  {curriculum.map((item, index) => {
+                    const viewed = studentCurrentCourseProgress?.progress?.find(
+                      (progressItem) => progressItem.lectureId === item._id
+                    )?.viewed;
+                    const active = currentLecture?._id === item._id;
+                    return (
+                      <button
+                        type="button"
+                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm ${
+                          active ? "bg-white/10" : "hover:bg-white/5"
+                        }`}
                         key={item._id}
+                        onClick={() => setCurrentLecture(item)}
                       >
-                        {studentCurrentCourseProgress?.progress?.find(
-                          (progressItem) => progressItem.lectureId === item._id
-                        )?.viewed ? (
-                          <Check className="h-4 w-4 text-green-500" />
+                        {viewed ? (
+                          <Check className="h-4 w-4 text-emerald-400" />
                         ) : (
-                          <Play className="h-4 w-4 " />
+                          <Play className="h-4 w-4" />
                         )}
-                        <span>{item?.title}</span>
-                      </div>
-                    )
-                  )}
+                        <span>
+                          {index + 1}. {item?.title}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </ScrollArea>
             </TabsContent>
-            <TabsContent value="overview" className="flex-1 overflow-hidden">
+            <TabsContent value="overview" className="mt-0 flex-1 overflow-hidden">
               <ScrollArea className="h-full">
                 <div className="p-4">
-                  <h2 className="text-xl font-bold mb-4">About this course</h2>
-                  <p className="text-gray-400">
+                  <h2 className="mb-4 text-xl font-bold">About this course</h2>
+                  <p className="text-slate-400">
                     {studentCurrentCourseProgress?.courseDetails?.description}
                   </p>
                 </div>
               </ScrollArea>
+            </TabsContent>
+            <TabsContent value="notes" className="mt-0 flex-1 overflow-hidden p-4">
+              <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+                <NotebookPen className="h-4 w-4" />
+                Private notes for this lecture
+              </div>
+              <Textarea
+                value={note}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setNote(value);
+                  saveLectureNote(
+                    auth?.user?._id,
+                    studentCurrentCourseProgress?.courseDetails?._id,
+                    currentLecture?._id,
+                    value
+                  );
+                }}
+                placeholder="Capture takeaways, code snippets, or questions..."
+                className="h-[70%] resize-none border-white/10 bg-black/30 text-white"
+              />
             </TabsContent>
           </Tabs>
         </div>
@@ -221,9 +285,9 @@ function StudentViewCourseProgressPage() {
       <Dialog open={lockCourse}>
         <DialogContent className="sm:w-[425px]">
           <DialogHeader>
-            <DialogTitle>You can't view this page</DialogTitle>
+            <DialogTitle>Course locked</DialogTitle>
             <DialogDescription>
-              Please purchase this course to get access
+              Purchase this course to access the player and lecture notes.
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
@@ -234,16 +298,28 @@ function StudentViewCourseProgressPage() {
             <DialogTitle>Congratulations!</DialogTitle>
             <DialogDescription className="flex flex-col gap-3">
               <Label>You have completed the course</Label>
-              <div className="flex flex-row gap-3">
+
+              <div className="flex flex-wrap gap-2">
                 <Button onClick={() => navigate("/student-courses")}>
-                  My Courses Page
+                  My learning
                 </Button>
-                <Button onClick={handleRewatchCourse}>Rewatch Course</Button>
+                <Button onClick={handleRewatchCourse}>Rewatch</Button>
+                <Button variant="outline" onClick={() => navigate("/certificates")}>
+                  🏆 View Certificate
+                </Button>
+                <WhatsAppNotifyModal
+                  type="certificate"
+                  courseData={{
+                    title: studentCurrentCourseProgress?.courseDetails?.title,
+                    courseId: id,
+                  }}
+                />
               </div>
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
       </Dialog>
+      <AICourseAssistantWidget courseId={id} lectureTitle={currentLecture?.title} />
     </div>
   );
 }

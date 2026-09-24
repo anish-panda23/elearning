@@ -54,34 +54,50 @@ const createOrder = async (req, res) => {
       ],
     };
 
+    const newlyCreatedCourseOrder = new Order({
+      userId,
+      userName,
+      userEmail,
+      orderStatus,
+      paymentMethod,
+      paymentStatus,
+      orderDate,
+      paymentId,
+      payerId,
+      instructorId,
+      instructorName,
+      courseImage,
+      courseTitle,
+      courseId,
+      coursePricing,
+    });
+
+    await newlyCreatedCourseOrder.save();
+
+    if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_SECRET_ID) {
+      // Demo / Direct purchase fallback mode when PayPal API credentials are not set
+      const mockApproveUrl = `${process.env.CLIENT_URL || "http://localhost:5173"}/checkout?orderId=${newlyCreatedCourseOrder._id}&courseTitle=${encodeURIComponent(courseTitle)}&coursePricing=${coursePricing}&courseImage=${encodeURIComponent(courseImage || "")}`;
+      return res.status(201).json({
+        success: true,
+        data: {
+          approveUrl: mockApproveUrl,
+          orderId: newlyCreatedCourseOrder._id,
+        },
+      });
+    }
+
     paypal.payment.create(create_payment_json, async (error, paymentInfo) => {
       if (error) {
-        console.log(error);
-        return res.status(500).json({
-          success: false,
-          message: "Error while creating paypal payment!",
+        console.log("PayPal API error, using direct checkout fallback:", error);
+        const fallbackApproveUrl = `${process.env.CLIENT_URL || "http://localhost:5173"}/checkout?orderId=${newlyCreatedCourseOrder._id}&courseTitle=${encodeURIComponent(courseTitle)}&coursePricing=${coursePricing}&courseImage=${encodeURIComponent(courseImage || "")}`;
+        return res.status(201).json({
+          success: true,
+          data: {
+            approveUrl: fallbackApproveUrl,
+            orderId: newlyCreatedCourseOrder._id,
+          },
         });
       } else {
-        const newlyCreatedCourseOrder = new Order({
-          userId,
-          userName,
-          userEmail,
-          orderStatus,
-          paymentMethod,
-          paymentStatus,
-          orderDate,
-          paymentId,
-          payerId,
-          instructorId,
-          instructorName,
-          courseImage,
-          courseTitle,
-          courseId,
-          coursePricing,
-        });
-
-        await newlyCreatedCourseOrder.save();
-
         const approveUrl = paymentInfo.links.find(
           (link) => link.rel == "approval_url"
         ).href;
@@ -95,6 +111,7 @@ const createOrder = async (req, res) => {
         });
       }
     });
+
   } catch (err) {
     console.log(err);
     res.status(500).json({

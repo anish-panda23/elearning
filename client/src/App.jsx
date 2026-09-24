@@ -13,6 +13,10 @@ import StudentViewCourseDetailsPage from "./pages/student/course-details";
 import PaypalPaymentReturnPage from "./pages/student/payment-return";
 import StudentCoursesPage from "./pages/student/student-courses";
 import StudentViewCourseProgressPage from "./pages/student/course-progress";
+import CheckoutPage from "./pages/student/checkout";
+import CertificatesPage from "./pages/student/certificates";
+import CertificateVerifyPage from "./pages/student/certificate-verify";
+import StudentJobsPage from "./pages/student/jobs";
 
 function App() {
   const { auth } = useContext(AuthContext);
@@ -77,11 +81,15 @@ function App() {
           element={<StudentViewCourseDetailsPage />}
         />
         <Route path="payment-return" element={<PaypalPaymentReturnPage />} />
+        <Route path="checkout" element={<CheckoutPage />} />
         <Route path="student-courses" element={<StudentCoursesPage />} />
         <Route
           path="course-progress/:id"
           element={<StudentViewCourseProgressPage />}
         />
+        <Route path="certificates" element={<CertificatesPage />} />
+        <Route path="certificate-verify/:certificateId" element={<CertificateVerifyPage />} />
+        <Route path="jobs" element={<StudentJobsPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

@@ -1,4 +1,5 @@
 const Course = require("../../models/Course");
+const { indexCourse } = require("../../helpers/elasticsearch");
 
 const addNewCourse = async (req, res) => {
   try {
@@ -7,6 +8,9 @@ const addNewCourse = async (req, res) => {
     const saveCourse = await newlyCreatedCourse.save();
 
     if (saveCourse) {
+      // Sync to Elasticsearch index asynchronously
+      indexCourse(saveCourse);
+
       res.status(201).json({
         success: true,
         message: "Course saved successfully",
@@ -82,6 +86,9 @@ const updateCourseByID = async (req, res) => {
       });
     }
 
+    // Sync updated course to Elasticsearch index
+    indexCourse(updatedCourse);
+
     res.status(200).json({
       success: true,
       message: "Course updated successfully",
@@ -95,6 +102,7 @@ const updateCourseByID = async (req, res) => {
     });
   }
 };
+
 
 module.exports = {
   addNewCourse,
