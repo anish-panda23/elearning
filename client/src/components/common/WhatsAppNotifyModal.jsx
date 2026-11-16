@@ -61,7 +61,8 @@ export default function WhatsAppNotifyModal({
       if (res.success) {
         setSentResult(res);
         // Automatically open WhatsApp Web / App pre-filled with the message
-        if (res.whatsappWebUrl) {
+        // Only fall back to the manual link when the server couldn't auto-send it
+        if (!res.twilioSent && res.whatsappWebUrl) {
           window.open(res.whatsappWebUrl, "_blank");
         }
       }
@@ -134,7 +135,9 @@ export default function WhatsAppNotifyModal({
             <div className="flex items-center gap-2 rounded-xl bg-emerald-950/60 border border-emerald-500/40 p-3 text-xs text-emerald-300">
               <Check className="h-4 w-4 shrink-0 text-emerald-400" />
               <span>
-                Notification generated! Opening WhatsApp Web preview...
+                {sentResult.twilioSent
+                  ? "Sent to your WhatsApp! Reply there with any question and our AI assistant will answer instantly."
+                  : "Notification generated! Opening WhatsApp Web preview..."}
               </span>
             </div>
           )}
