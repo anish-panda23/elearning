@@ -1,26 +1,44 @@
 services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+   
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+    restart: unless-stopped  
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      retries: 12
+    restart: unless-stopped        
   server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
+    build: ./server
+    env_file: ./server/.env
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      ELASTICSEARCH_NODE: http://elasticsearch:9200
+      CLIENT_URL: http://localhost:8080
     ports:
       - "5001:5001"
-    environment:
-      - PORT=5001
-      - MONGO_URI=mongodb://mongo:27017/elearning
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - ELASTICSEARCH_NODE=http://elasticsearch:9200
-      - CLIENT_URL=http://localhost:8080
-      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in your shell or a root .env file}
     depends_on:
-      mongo:
-        condition: service_healthy
       redis:
         condition: service_healthy
       elasticsearch:
-        condition: service_started
-
+        condition: service_healthy
+    restart: unless-stopped 
   client:
     build:
       context: ./client
@@ -30,61 +48,8 @@ services:
       - "8080:80"
     depends_on:
       - server
-
-  mongo:
-    image: mongo:6.0
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      retries: 5
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    ports:
-      - "9200:9200"
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    volumes:
-      - es-data:/usr/share/elasticsearch/data
-
-  # Monitoring stack, started only with: docker compose --profile monitoring up
-  prometheus:
-    image: prom/prometheus:v2.53.0
-    profiles: ["monitoring"]
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-
-  grafana:
-    image: grafana/grafana:11.1.0
-    profiles: ["monitoring"]
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
-    volumes:
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
-    depends_on:
-      - prometheus
+    restart: unless-stopped
 
 volumes:
-  mongo-data:
-  es-data:
+  redis-data: 
+  es-data: 

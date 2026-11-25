@@ -1,7 +1,12 @@
 node_modules
-uploads
+.env
+.env.*
+.git
+.gitignore
 tests
 coverage
-dist
-.env
+uploads
 *.log
+Dockerfile
+.dockerignore
+README.md

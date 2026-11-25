@@ -1,4 +1,28 @@
+# installed packages: reinstalled inside the image by npm ci
 node_modules
+
+# old build output: rebuilt inside the image by npm run build
 dist
+
+# env files: values come from --build-arg instead
 .env
+.env.*
+
+# git
+.git
+.gitignore
+
+# Docker files themselves
+Dockerfile
+.dockerignore
+
+# not needed for the build
+README.md
+eslint.config.js
+components.json
+
+# logs, test output, editor folders
 *.log
+coverage
+.vscode
+.idea
